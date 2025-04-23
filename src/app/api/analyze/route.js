@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { chromium } from "playwright";
+import puppeteer from "puppeteer";
 
 export const runtime = "nodejs";
 
@@ -10,14 +10,14 @@ export async function POST(req) {
       return NextResponse.json({ error: "Invalid URL provided." }, { status: 400 });
     }
 
-    const browser = await chromium.launch();
+    const browser = await puppeteer.launch({ args: ["--no-sandbox", "--disable-setuid-sandbox"] });
     const page = await browser.newPage();
     const fontFamilies = new Set();
     const fontFiles = new Set();
     const fontFileTypes = {};
 
     // Listen for font file network requests
-    page.on("requestfinished", request => {
+    page.on("requestfinished", async request => {
       const url = request.url();
       if (/\.(woff2?|ttf|otf|eot)(\?|$)/i.test(url)) {
         fontFiles.add(url);
@@ -27,9 +27,9 @@ export async function POST(req) {
     });
 
     // Timeout after 45 seconds
-    await page.goto(url, { waitUntil: "networkidle", timeout: 45000 });
+    await page.goto(url, { waitUntil: "networkidle0", timeout: 45000 });
 
-    // Collect all computed font families from all frames (main frame + iframes)
+    // Helper to collect font families from a frame
     async function collectFamiliesFromFrame(frame) {
       return await frame.evaluate(() => {
         const fams = new Set();
