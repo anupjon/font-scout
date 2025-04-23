@@ -1,103 +1,136 @@
-import Image from "next/image";
+'use client';
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Loader2 } from "lucide-react";
+import { useTheme } from "@/components/ui/theme-provider";
+import { Sun, Moon } from "lucide-react";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.js
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const { theme, toggleTheme } = useTheme();
+  const [url, setUrl] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [result, setResult] = useState(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+  // Call backend API
+  async function handleAnalyze(e) {
+    e.preventDefault();
+    setError("");
+    setResult(null);
+    if (!url.trim()) {
+      setError("Please enter a website URL.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to analyze fonts.");
+      setResult(data);
+    } catch (err) {
+      setError(err.message || "Failed to analyze fonts.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground p-4">
+      <button
+        aria-label="Toggle dark mode"
+        onClick={toggleTheme}
+        className="absolute top-4 right-4 rounded-full p-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-black text-black dark:text-white shadow hover:bg-gray-100 dark:hover:bg-gray-900 transition"
+        type="button"
+      >
+        {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+      </button>
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle className="text-3xl font-bold text-center">Font Scout</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleAnalyze} className="flex flex-col gap-4">
+            <label htmlFor="url" className="font-medium">Website URL</label>
+            <Input
+              id="url"
+              type="url"
+              placeholder="https://example.com"
+              value={url}
+              onChange={e => setUrl(e.target.value)}
+              required
+              disabled={loading}
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            <Button type="submit" disabled={loading} className="w-full">
+              {loading && <Loader2 className="animate-spin mr-2 h-4 w-4" />}Analyze Fonts
+            </Button>
+            {error && (
+              <Alert variant="destructive">
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+          </form>
+        </CardContent>
+      </Card>
+      {loading && (
+        <div className="mt-6 flex items-center gap-2 text-blue-600">
+          <Loader2 className="animate-spin h-5 w-5" />
+          Analyzing fonts...
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      )}
+      {result && (
+        <Card className="mt-8 w-full max-w-2xl">
+          <CardHeader>
+            <CardTitle>Results for <span className="break-all text-blue-700">{result.analyzedUrl}</span></CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="mb-4">
+              <h2 className="font-semibold mb-2">Font Families</h2>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {result.fontFamilies.map(f => (
+                    <TableRow key={f}>
+                      <TableCell>{f}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            <div>
+              <h2 className="font-semibold mb-2">Font Files</h2>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>URL</TableHead>
+                    <TableHead>Type</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {result.fontFiles.map(f => (
+                    <TableRow key={f.url}>
+                      <TableCell className="break-all text-blue-700 underline"><a href={f.url} target="_blank" rel="noopener noreferrer">{f.url}</a></TableCell>
+                      <TableCell>{f.type}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
